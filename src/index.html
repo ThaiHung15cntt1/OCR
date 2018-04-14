@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Optical Character Recognition</title>
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/style.css">
+  </head>
+  <body>
+    <header>
+      <div class="content">
+        <div class="title">
+          <h3>Optical Character Recognition</h3>
+        </div>
+       <div class="inputLink">
+          <input type="text" name="inputImage" id="inputImage" placeholder=" Url Image">
+          <button type="button" id="btnRead" name="button" onclick="ocrButtonClick()">Read Image</button>
+       </div>
+      </div>
+    </header>
+    <article>
+      <div class="main" id="main" style="display:none">
+          <div class="result">
+              <textarea name="name" id="responseTextArea" class="UIInput" rows="8" cols="100"></textarea>
+          </div>
+          <div class="image">
+              <img id="sourceImage" onerror="common.imageLoadError()" alt="">
+          </div>
+      </div>
+      <div class="disable">
+        <input type="text" class="subKeyInput" name="subscriptionKeyInput" value="527fa26da94545ca9e047d60c87184f7" id="subscriptionKeyInput"
+        onchange="common.subscriptionChange()" value="Copy/paste your subscription key here.">
+        <select name="subscriptionRegionSelect" id="subscriptionRegionSelect" onchange="common.subscriptionChange()">
+                      <option value="westcentralus" selected>westcentralus</option>
+                      <option value="westus">westus</option>
+                      <option value="eastus2">eastus2</option>
+                      <option value="westeurope">westeurope</option>
+                      <option value="southeastasia">southeastasia</option>
+        </select>
+      </div>
+      </article>
+  <footer class="footer"></footer>
+
+      <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js" charset="utf-8"></script>
+      <script src="js/jquery.min.js" charset="utf-8"></script>
+      <script src="js/bootstrap.min.js" charset="utf-8"></script>
+      <script src="common.js" charset="utf-8"></script>
+
+      <script type="text/javascript">
+      function ocrButtonClick() {
+          var x = document.getElementById("main");
+          x.style.display = "block";
+          // Clear the display fields.
+          $("#sourceImage").attr("src", "#");
+          $("#responseTextArea").val("");
+          $("#captionSpan").text("");
+
+          // Display the image.
+          var sourceImageUrl = $("#inputImage").val();
+          $("#sourceImage").attr("src", sourceImageUrl);
+
+          ReadOcrImage(sourceImageUrl, $("#responseTextArea"));
+        }
+        function ReadOcrImage(sourceImageUrl, responseTextArea) {
+    // Request parameters.
+    var params = {
+        "language": "unk",
+        "detectOrientation ": "true",
+    };
+
+    // Perform the REST API call.
+    $.ajax({
+        url: common.uriBasePreRegion +
+             $("#subscriptionRegionSelect").val() +
+             common.uriBasePostRegion +
+             common.uriBaseOcr +
+             "?" +
+             $.param(params),
+
+        // Request headers.
+        beforeSend: function(jqXHR){
+            jqXHR.setRequestHeader("Content-Type","application/json");
+            jqXHR.setRequestHeader("Ocp-Apim-Subscription-Key",
+                encodeURIComponent($("#subscriptionKeyInput").val()));
+        },
+
+        type: "POST",
+
+        // Request body.
+        data: '{"url": ' + '"' + sourceImageUrl + '"}',
+    })
+
+    .done(function(data) {
+        // Show formatted JSON on webpage.
+        //responseTextArea.val(JSON.stringify(data, null, 2));lines[0].words[0].text
+        //console.log(responseTextArea.value());
+        var response = data.regions[0];
+        console.log(response.lines.length);
+        // for(var i=0; i<response.lines.length; i++)
+        //     console.log(i);
+        var text="";
+        for(var i=0; i<response.lines.length; i++)
+          for(var j=0; j<response.lines[i].words.length; j++)
+             text += data.regions[0].lines[i].words[j].text+" ";
+
+         responseTextArea.val(text);
+        })
+
+
+      .fail(function(jqXHR, textStatus, errorThrown) {
+          // Put the JSON description into the text area.
+          responseTextArea.val(JSON.stringify(jqXHR, null, 2));
+
+          // Display error message.
+          var errorString = (errorThrown === "") ? "Error. " : errorThrown + " (" + jqXHR.status + "): ";
+          errorString += (jqXHR.responseText === "") ? "" : (jQuery.parseJSON(jqXHR.responseText).message) ?
+              jQuery.parseJSON(jqXHR.responseText).message : jQuery.parseJSON(jqXHR.responseText).error.message;
+          alert(errorString);
+        });
+      }
+      </script>
+  </body>
+</html>
